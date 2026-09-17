@@ -79,6 +79,33 @@ describe("Schema", function()
         end)
     end)
 
+    describe("v1 to v2 migration: auto_open_at_ah", function()
+        it("should_turn_off_auto_open_at_ah_for_a_v1_db_that_had_it_on", function()
+            local db = Schema.initialize({ version = 1, settings = { auto_open_at_ah = true } })
+
+            assert.is_false(db.settings.auto_open_at_ah)
+            assert.are.equal(2, db.version)
+        end)
+
+        it("should_leave_it_off_for_a_v1_db_that_already_had_it_off", function()
+            local db = Schema.initialize({ version = 1, settings = { auto_open_at_ah = false } })
+
+            assert.is_false(db.settings.auto_open_at_ah)
+        end)
+
+        it("should_default_a_brand_new_install_to_off", function()
+            local db = Schema.initialize(nil)
+
+            assert.is_false(db.settings.auto_open_at_ah)
+        end)
+
+        it("should_not_touch_a_db_that_has_no_settings_table_yet", function()
+            assert.has_no.errors(function()
+                Schema.initialize({ version = 1 })
+            end)
+        end)
+    end)
+
     describe("migrate", function()
         it("should_stamp_the_current_version_when_no_migration_path_exists", function()
             local db = { version = 0 }

@@ -1,5 +1,11 @@
--- The main window: groups on the left, the tracked items of the selected group
--- on the right. Rendering only — every number comes from Stock/StockLedger.
+-- Groups on the left, the tracked items of the selected group on the right.
+-- Rendering only — every number comes from Stock/StockLedger.
+--
+-- The widgets are split in two: `content` (sidebar + item panel + footer) is
+-- the shared, single instance of everything that matters, and `standalone`
+-- is just chrome (backdrop, title, drag-to-move, close button) around it for
+-- when the auction house isn't open. When it is, `content` is reparented
+-- into the Auctionpad tab instead (see UI/AHTab.lua) — never two copies.
 
 if not Auctionpad then Auctionpad = {} end
 if not Auctionpad.UI then Auctionpad.UI = {} end
@@ -38,7 +44,8 @@ local BACKDROP = {
     insets = { left = 4, right = 4, top = 4, bottom = 4 },
 }
 
-local frame
+local standalone -- chrome only: backdrop, title, drag-to-move, close button
+local content    -- shared: sidebar + item panel + footer, reparented as needed
 local group_rows = {}
 local item_rows = {}
 local selected_group_id
@@ -316,9 +323,11 @@ local function add_from_text(text)
     return add_item(item_id, text:match("|c.-|h.-|h|r"))
 end
 
--- ------------------------------------------------------------------- window
+-- ------------------------------------------------------------------- chrome
 
-local function create_window()
+-- The floating window's frame, backdrop and title bar — no group/item
+-- widgets live here directly, `content` docks into it below the title.
+local function create_standalone_chrome()
     local window = CreateFrame("Frame", "AuctionpadFrame", UIParent, "BackdropTemplate")
     window:SetSize(WINDOW_WIDTH, WINDOW_HEIGHT)
     window:SetPoint("CENTER")
@@ -342,8 +351,16 @@ local function create_window()
 
     local close = CreateFrame("Button", nil, window, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -4, -4)
+    close:SetScript("OnClick", function() UI.Hide() end)
 
-    return window, title
+    return window
+end
+
+local function ensure_standalone_chrome()
+    if not standalone then
+        standalone = create_standalone_chrome()
+    end
+    return standalone
 end
 
 local function create_sidebar(window)
@@ -355,9 +372,9 @@ local function create_sidebar(window)
     scroll:SetPoint("TOPLEFT", 12, -64)
     scroll:SetSize(SIDEBAR_WIDTH - 24, WINDOW_HEIGHT - 132)
 
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(SIDEBAR_WIDTH - 24, 1)
-    scroll:SetScrollChild(content)
+    local scroll_content = CreateFrame("Frame", nil, scroll)
+    scroll_content:SetSize(SIDEBAR_WIDTH - 24, 1)
+    scroll:SetScrollChild(scroll_content)
 
     local name_box = CreateFrame("EditBox", nil, window, "InputBoxTemplate")
     name_box:SetSize(SIDEBAR_WIDTH - 66, 20)
@@ -381,7 +398,7 @@ local function create_sidebar(window)
     add_button:SetScript("OnClick", create_group)
     name_box:SetScript("OnEnterPressed", create_group)
 
-    return content
+    return scroll_content
 end
 
 local function create_item_panel(window)
@@ -415,15 +432,15 @@ local function create_item_panel(window)
     scroll:SetPoint("TOPLEFT", 8, -30)
     scroll:SetPoint("BOTTOMRIGHT", -28, 8)
 
-    local content = CreateFrame("Frame", nil, scroll)
-    content:SetSize(WINDOW_WIDTH - SIDEBAR_WIDTH - 50, 1)
-    scroll:SetScrollChild(content)
+    local scroll_content = CreateFrame("Frame", nil, scroll)
+    scroll_content:SetSize(WINDOW_WIDTH - SIDEBAR_WIDTH - 50, 1)
+    scroll:SetScrollChild(scroll_content)
 
     local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     hint:SetPoint("CENTER", 0, 0)
     hint:SetText(L("Drag an item here, or paste an item link."))
 
-    return panel, content, hint
+    return panel, scroll_content, hint
 end
 
 local function create_footer(window)
@@ -459,18 +476,21 @@ local function create_footer(window)
     return status
 end
 
-local function ensure_frame()
-    if frame then
-        return frame
+-- Creates the shared content once. It starts parented to UIParent and
+-- unpositioned — the caller (UI.Show/AHTab.EnsureTab) docks it wherever it
+-- belongs before showing it.
+local function ensure_content()
+    if content then
+        return content
     end
 
-    local window = create_window()
-    frame = window
-    frame.group_content = create_sidebar(window)
-    frame.item_panel, frame.item_content, frame.item_hint = create_item_panel(window)
-    frame.status = create_footer(window)
+    content = CreateFrame("Frame", "AuctionpadContent", UIParent)
+    content:SetSize(WINDOW_WIDTH, WINDOW_HEIGHT)
+    content.group_content = create_sidebar(content)
+    content.item_panel, content.item_content, content.item_hint = create_item_panel(content)
+    content.status = create_footer(content)
 
-    return frame
+    return content
 end
 
 local function restore_position(window)
@@ -485,7 +505,7 @@ end
 -- --------------------------------------------------------------- public API
 
 function UI.Refresh()
-    if not frame or not frame:IsShown() then
+    if not content or not content:IsShown() then
         return
     end
 
@@ -498,38 +518,74 @@ function UI.Refresh()
         selected_group_id = groups[1].id
     end
 
-    refresh_groups(frame.group_content)
-    local shown = refresh_items(frame.item_content)
+    refresh_groups(content.group_content)
+    local shown = refresh_items(content.item_content)
 
     if shown > 0 then
-        frame.item_hint:Hide()
+        content.item_hint:Hide()
     else
-        frame.item_hint:Show()
+        content.item_hint:Show()
     end
 
     local _, age = Auctionpad.Auction.OwnedAuctions.get_snapshot(db())
     if age == nil then
-        frame.status:SetText(L("Open the auction house to refresh what is on sale."))
+        content.status:SetText(L("Open the auction house to refresh what is on sale."))
     else
-        frame.status:SetText(string.format(L("On sale as of %s ago."), Auctionpad.Utils.Locale.format_age(age)))
+        content.status:SetText(string.format(L("On sale as of %s ago."), Auctionpad.Utils.Locale.format_age(age)))
     end
 end
 
+-- Docks content into the standalone floating window, below the title bar.
+local function dock_into_standalone()
+    local window = ensure_standalone_chrome()
+    content:SetParent(window)
+    content:ClearAllPoints()
+    content:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
+    content:Show()
+    return window
+end
+
 function UI.Show()
-    local window = ensure_frame()
-    restore_position(window)
-    window:Show()
+    ensure_content()
+
+    if AuctionHouseFrame and AuctionHouseFrame:IsShown() then
+        Auctionpad.UI.AHTab.EnsureTab(content)
+        Auctionpad.UI.AHTab.Select()
+    else
+        local window = dock_into_standalone()
+        restore_position(window)
+        window:Show()
+    end
+
     UI.Refresh()
 end
 
+-- Hides both the floating window and the content wherever it currently
+-- lives. Safe to call even while docked in the AH tab (e.g. from Core.lua
+-- just before docking): content simply gets shown again right after.
 function UI.Hide()
-    if frame then
-        frame:Hide()
+    if standalone then
+        standalone:Hide()
+    end
+    if content then
+        content:Hide()
     end
 end
 
 function UI.Toggle()
-    if frame and frame:IsShown() then
+    ensure_content()
+
+    if AuctionHouseFrame and AuctionHouseFrame:IsShown() then
+        Auctionpad.UI.AHTab.EnsureTab(content)
+        if Auctionpad.UI.AHTab.IsSelected() then
+            return -- our tab is already the one showing, a repeat /apad is a no-op
+        end
+        Auctionpad.UI.AHTab.Select()
+        UI.Refresh()
+        return
+    end
+
+    if UI.IsStandaloneShown() then
         UI.Hide()
     else
         UI.Show()
@@ -537,5 +593,15 @@ function UI.Toggle()
 end
 
 function UI.IsShown()
-    return frame ~= nil and frame:IsShown()
+    return content ~= nil and content:IsShown()
+end
+
+function UI.IsStandaloneShown()
+    return standalone ~= nil and standalone:IsShown()
+end
+
+-- Lazily creates the content if needed — used by Core.lua so it never has
+-- to know about MainFrame's internals beyond "the frame to dock somewhere".
+function UI.GetContent()
+    return ensure_content()
 end

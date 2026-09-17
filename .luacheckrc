@@ -20,6 +20,8 @@ read_globals = {
     "GetLocale", "GetBuildInfo", "GetMoney", "time",
     -- Optional dependency, guarded at every call site
     "Auctionator",
+    -- Auction house window (used by UI/AHTab.lua; Libs/ itself is style-excluded below)
+    "LibStub", "AuctionHouseFrame",
 }
 
 -- Auctionpad globals (writable)
@@ -32,9 +34,18 @@ globals = {
 
 files["**/*_spec.lua"] = {
     read_globals = {"describe", "it", "before_each", "after_each", "assert", "spy", "stub", "mock"},
+    -- Tests poke fields on the mocked AuctionHouseFrame (e.g. IsShown) to
+    -- simulate it opening/closing — legitimate only in test code.
+    ignore = {"122"},
 }
 
 files["test_helpers/**/*.lua"] = {
     allow_defined_top = true,
     ignore = {"212"}, -- unused arguments in mocks are fine
+}
+
+-- Vendored third-party code (see Libs/*/README or LICENSE) — not our style,
+-- and never edited beyond an attribution comment. Skip style checks entirely.
+files["Libs/**/*.lua"] = {
+    ignore = {"1", "2", "4", "6"}, -- undefined/global-write, unused, shadowing, formatting
 }

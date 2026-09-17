@@ -24,6 +24,9 @@ local FRAME_METHODS = {
     "SetAutoFocus", "SetNumeric", "SetJustifyH", "SetText", "SetMaxLetters",
     "ClearFocus", "SetFocus", "LockHighlight", "UnlockHighlight", "SetHighlightTexture",
     "SetNormalTexture", "SetPushedTexture", "Enable", "Disable", "SetEnabled",
+    -- Auction house tab docking (SetParent/GetParent/IsObjectType are defined below,
+    -- with real bookkeeping instead of a no-op)
+    "SetHitRectInsets", "SetDisplayMode", "SetTitle",
 }
 
 local function stub_region()
@@ -42,14 +45,25 @@ local function stub_frame()
     end
 
     frame.IsShown = function() return frame.shown == true end
-    frame.Show = function() frame.shown = true end
-    frame.Hide = function() frame.shown = false end
+    frame.Show = function()
+        frame.shown = true
+        local on_show = frame.scripts and frame.scripts.OnShow
+        if on_show then on_show(frame) end
+    end
+    frame.Hide = function()
+        frame.shown = false
+        local on_hide = frame.scripts and frame.scripts.OnHide
+        if on_hide then on_hide(frame) end
+    end
     frame.GetText = function() return frame.text or "" end
     frame.HasFocus = function() return false end
     frame.GetPoint = function() return "CENTER", nil, "CENTER", 0, 0 end
     frame.GetCenter = function() return 0, 0 end
     frame.GetEffectiveScale = function() return 1 end
     frame.IsEnabled = function() return true end
+    frame.IsObjectType = function() return true end
+    frame.GetParent = function() return frame.parent end
+    frame.SetParent = function(_, parent) frame.parent = parent end
     frame.SetScript = function(_, name, handler) frame.scripts[name] = handler end
     frame.GetScript = function(_, name) return frame.scripts[name] end
     frame.CreateFontString = stub_region
@@ -79,6 +93,8 @@ function WowApiMock.install()
 
     _G.print = function() end
     _G.time = function() return 1758067200 end
+    -- WoW defines string.match as a global alias for speed; LibStub uses it.
+    _G.strmatch = string.match
     _G.GetTime = function() return 1000.0 end
     _G.GetLocale = function() return "enUS" end
     _G.GetBuildInfo = function() return "12.1.0", "62000", "Sep 17 2026", 120100 end
@@ -154,6 +170,41 @@ function WowApiMock.install()
 
     -- Auctionator is absent by default: that is the case the addon must survive.
     _G.Auctionator = nil
+
+    -- The Blizzard auction house window doesn't exist until Blizzard_AuctionHouseUI
+    -- loads (first AH visit of the session) — absent by default, same as in game.
+    _G.AuctionHouseFrame = nil
+
+    -- LibStub deliberately persists its registry across dofile() calls (that's
+    -- the point, in a real client) — wipe it so each test starts a fresh
+    -- "session" instead of reusing the previous test's LibAHTab tab state.
+    _G.LibStub = nil
+
+    -- Real hooksecurefunc semantics: run the original, then every registered hook,
+    -- in order. LibAHTab relies on this to hide our tab when Blizzard's own
+    -- SetDisplayMode runs (e.g. the user clicks a native Buy/Sell/Auctions tab).
+    _G.hooksecurefunc = function(object, method, hook)
+        local original = object[method]
+        object[method] = function(...)
+            if original then original(...) end
+            hook(...)
+        end
+    end
+
+    _G.PanelTemplates_TabResize = function() end
+    _G.PanelTemplates_SelectTab = function() end
+    _G.PanelTemplates_DeselectTab = function() end
+end
+
+-- Builds and installs a mocked AuctionHouseFrame, as if Blizzard_AuctionHouseUI
+-- had just loaded (i.e. the player opened the auction house once this session).
+function WowApiMock.install_auction_house_frame()
+    local ah = stub_frame()
+    ah.Tabs = { stub_frame(), stub_frame(), stub_frame() } -- Buy / Sell / Auctions
+    ah.SetTitle = function(_, title) ah.title = title end
+    ah.SetDisplayMode = function(_, mode) ah.display_mode = mode end
+    _G.AuctionHouseFrame = ah
+    return ah
 end
 
 -- Installs a fake Auctionator whose price table is keyed by item id or item link.

@@ -6,7 +6,7 @@ if not Auctionpad.Data then Auctionpad.Data = {} end
 
 local Schema = Auctionpad.Data
 
-Schema.SCHEMA_VERSION = 1
+Schema.SCHEMA_VERSION = 2
 
 -- Returns a fresh copy every call: callers mutate what they get back.
 function Schema.defaults()
@@ -22,7 +22,7 @@ function Schema.defaults()
             duration = 3,
             undercut = { mode = "flat", value = 1 },
             price_floor = true,
-            auto_open_at_ah = true,
+            auto_open_at_ah = false,
             stale_after = 3600,
             minimap = { hide = false, angle = 200 },
         },
@@ -49,7 +49,18 @@ end
 Schema.fill_missing = fill_missing
 
 -- [from_version] = function(db) ... end. Each migration bumps db.version itself.
-Schema.migrations = {}
+Schema.migrations = {
+    -- auto_open_at_ah used to mean "open the floating window when the AH
+    -- shows up"; it now means "auto-select the Auctionpad tab". Force it off
+    -- for anyone coming from the old default of true, so opening the AH
+    -- doesn't suddenly hijack their view of Buy/Sell/Auctions.
+    [1] = function(db)
+        if db.settings and db.settings.auto_open_at_ah == true then
+            db.settings.auto_open_at_ah = false
+        end
+        db.version = 2
+    end,
+}
 
 function Schema.migrate(db)
     if type(db.version) ~= "number" then

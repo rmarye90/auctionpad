@@ -8,6 +8,9 @@
 ## OptionalDeps: Auctionator
 ## X-License: MIT
 
+Libs\LibStub\LibStub.lua
+Libs\LibAHTab\LibAHTab.lua
+
 Core.lua
 Utils\Locale.lua
 Utils\Money.lua
@@ -17,5 +20,6 @@ Data\GroupStore.lua
 Stock\StockLedger.lua
 Auction\OwnedAuctions.lua
 UI\MainFrame.lua
+UI\AHTab.lua
 UI\MinimapButton.lua
 Commands.lua

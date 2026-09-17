@@ -44,12 +44,33 @@ local function on_player_login()
     Auctionpad.UI.CreateMinimapButton()
 end
 
+-- Tracks whether the floating window was open right before the AH showed up,
+-- so on_auction_house_closed() knows whether to bring it back.
+local was_standalone_visible_before_ah = false
+
 local function on_auction_house_show()
     Auctionpad.Auction.OwnedAuctions.request()
 
+    was_standalone_visible_before_ah = Auctionpad.UI.IsStandaloneShown()
+    if was_standalone_visible_before_ah then
+        Auctionpad.UI.Hide()
+    end
+
+    Auctionpad.UI.AHTab.EnsureTab(Auctionpad.UI.GetContent())
+
+    -- No forced Select() here by default: a well-behaved addon doesn't steal
+    -- the tab focus the user (or Auctionator) already had. auto_open_at_ah
+    -- opts into that if the user wants it.
     if Auctionpad.db.settings.auto_open_at_ah then
+        Auctionpad.UI.AHTab.Select()
+    end
+end
+
+local function on_auction_house_closed()
+    if was_standalone_visible_before_ah then
         Auctionpad.UI.Show()
     end
+    was_standalone_visible_before_ah = false
 end
 
 local function on_owned_auctions_updated()
@@ -61,6 +82,7 @@ local EVENT_HANDLERS = {
     ADDON_LOADED = on_addon_loaded,
     PLAYER_LOGIN = on_player_login,
     AUCTION_HOUSE_SHOW = on_auction_house_show,
+    AUCTION_HOUSE_CLOSED = on_auction_house_closed,
     OWNED_AUCTIONS_UPDATED = on_owned_auctions_updated,
     BAG_UPDATE_DELAYED = refresh_soon,
     PLAYERBANKSLOTS_CHANGED = refresh_soon,

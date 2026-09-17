@@ -113,4 +113,98 @@ describe("addon load", function()
             SlashCmdList["AUCTIONPAD"]("help")
         end)
     end)
+
+    describe("auction house tab docking", function()
+        local function fire(event, ...)
+            Auctionpad.eventFrame:GetScript("OnEvent")(nil, event, ...)
+        end
+
+        local function open_auction_house()
+            local ah = WowApiMock.install_auction_house_frame()
+            ah.IsShown = function() return true end
+            fire("AUCTION_HOUSE_SHOW")
+            return ah
+        end
+
+        local function close_auction_house()
+            AuctionHouseFrame.IsShown = function() return false end
+            fire("AUCTION_HOUSE_CLOSED")
+        end
+
+        it("should_noop_ensure_tab_before_the_auction_house_addon_loads", function()
+            assert.has_no.errors(function()
+                Auctionpad.UI.AHTab.EnsureTab(Auctionpad.UI.GetContent())
+            end)
+            assert.is_false(Auctionpad.UI.AHTab.IsCreated())
+        end)
+
+        it("should_create_the_tab_when_the_auction_house_opens", function()
+            assert.has_no.errors(open_auction_house)
+            assert.is_true(Auctionpad.UI.AHTab.IsCreated())
+        end)
+
+        it("should_not_create_a_second_tab_on_a_second_auction_house_show", function()
+            open_auction_house()
+            local tabs_after_first = #LibStub("LibAHTab-1-0").internalState.Tabs
+
+            fire("AUCTION_HOUSE_SHOW")
+
+            assert.are.equal(tabs_after_first, #LibStub("LibAHTab-1-0").internalState.Tabs)
+        end)
+
+        it("should_not_select_the_tab_by_default_when_the_auction_house_opens", function()
+            open_auction_house()
+
+            assert.is_false(Auctionpad.UI.AHTab.IsSelected())
+        end)
+
+        it("should_select_the_tab_automatically_when_auto_open_at_ah_is_enabled", function()
+            Auctionpad.db.settings.auto_open_at_ah = true
+
+            open_auction_house()
+
+            assert.is_true(Auctionpad.UI.AHTab.IsSelected())
+        end)
+
+        it("should_dock_the_content_into_the_tab_via_apad_while_the_auction_house_is_open", function()
+            open_auction_house()
+
+            SlashCmdList["AUCTIONPAD"]("")
+
+            assert.is_true(Auctionpad.UI.AHTab.IsSelected())
+            assert.is_true(Auctionpad.UI.IsShown())
+        end)
+
+        it("should_still_toggle_the_floating_window_when_the_auction_house_is_closed", function()
+            assert.has_no.errors(function()
+                Auctionpad.UI.Toggle()
+            end)
+            assert.is_true(Auctionpad.UI.IsShown())
+            assert.is_true(Auctionpad.UI.IsStandaloneShown())
+        end)
+
+        it("should_hide_the_floating_window_when_the_auction_house_opens", function()
+            Auctionpad.UI.Show() -- floating window, AH closed
+
+            open_auction_house()
+
+            assert.is_false(Auctionpad.UI.IsStandaloneShown())
+        end)
+
+        it("should_restore_the_floating_window_after_the_auction_house_closes_if_it_was_open_before", function()
+            Auctionpad.UI.Show() -- floating window, AH closed
+
+            open_auction_house()
+            close_auction_house()
+
+            assert.is_true(Auctionpad.UI.IsStandaloneShown())
+        end)
+
+        it("should_not_reopen_the_floating_window_if_it_was_not_open_before_the_auction_house", function()
+            open_auction_house()
+            close_auction_house()
+
+            assert.is_false(Auctionpad.UI.IsStandaloneShown())
+        end)
+    end)
 end)

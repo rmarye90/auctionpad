@@ -23,8 +23,28 @@ ln -s /path/to/workflow_ai/addons/auctionpad \
 
 | Command | Effect |
 |---|---|
-| `/auctionpad`, `/apad` | Toggle the main window |
+| `/auctionpad`, `/apad` | Toggle the main window (or select the Auctionpad tab, see below) |
 | `/apad help` | Show the command list |
+
+## Auction house integration
+
+When the auction house is open, Auctionpad docks into it as a tab (next to Blizzard's
+own Buy/Sell/Auctions, and Auctionator's if it's installed) instead of floating on top
+of it. `/apad` and the minimap button select that tab; a repeated `/apad` while it's
+already selected does nothing. Outside the auction house, the same content shows up in
+the floating window as before — nothing is lost, it's the same widgets reparented.
+
+By default, opening the auction house does **not** auto-select the tab (so it never
+hides Buy/Sell/Auctions on you) — set `settings.auto_open_at_ah = true` to change that.
+
+This is built on [LibAHTab](https://github.com/TheMouseNest/LibAHTab) (vendored in
+`Libs/`, MIT licensed), the same library Auctionator and TradeSkillMaster use to add
+their own AH tabs. It's the one exception to this addon's "no external dependencies"
+rule: hand-rolling AH tab anchoring is a known source of bag taint on the second time
+the auction house is opened (see `Libs/LibAHTab/README.md`) — LibAHTab exists
+specifically to avoid that, and embedding it lets Auctionpad's tab coexist correctly
+with any other addon's tabs that also use it. `Libs/LibAHTab/LibAHTab.lua` is never
+edited directly; behavior changes belong in `UI/AHTab.lua`.
 
 ## Development
 
