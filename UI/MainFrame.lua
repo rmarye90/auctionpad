@@ -342,12 +342,14 @@ end
 
 -- Accepts an item dropped from the bags, or an item link / id typed in the box.
 local function add_item(item_id, item_link)
+    print("|cffff0000[Auctionpad DEBUG]|r add_item", item_id, item_link, "selected_group_id=", selected_group_id)
     if not selected_group_id then
         print("|cff33ff99Auctionpad|r " .. L("No group yet. Create one to get started."))
         return false
     end
 
     local entry = store().add_item(db(), selected_group_id, item_id, { item_link = item_link })
+    print("|cffff0000[Auctionpad DEBUG]|r store().add_item returned", entry)
     if not entry then
         return false
     end
@@ -357,7 +359,9 @@ local function add_item(item_id, item_link)
 end
 
 function add_from_cursor()
+    print("|cffff0000[Auctionpad DEBUG]|r add_from_cursor called")
     local kind, item_id, item_link = GetCursorInfo()
+    print("|cffff0000[Auctionpad DEBUG]|r GetCursorInfo ->", kind, item_id, item_link)
     if kind ~= "item" then
         return false
     end
