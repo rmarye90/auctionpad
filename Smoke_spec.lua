@@ -83,6 +83,22 @@ describe("addon load", function()
         end)
     end)
 
+    it("should_delete_a_group_and_its_items_once_the_confirmation_popup_is_accepted", function()
+        local group_id = Auctionpad.Data.GroupStore.create(Auctionpad.db, "Flasks")
+        Auctionpad.Data.GroupStore.add_item(Auctionpad.db, group_id, Fixtures.FLASK_ID, { target = 20 })
+        Auctionpad.UI.Show()
+
+        StaticPopupDialogs["AUCTIONPAD_CONFIRM_DELETE_GROUP"].OnAccept({ data = group_id })
+
+        assert.is_nil(Auctionpad.Data.GroupStore.get(Auctionpad.db, group_id))
+    end)
+
+    it("should_ignore_a_delete_confirmation_with_no_group_id", function()
+        assert.has_no.errors(function()
+            StaticPopupDialogs["AUCTIONPAD_CONFIRM_DELETE_GROUP"].OnAccept({ data = nil })
+        end)
+    end)
+
     it("should_render_with_auction_data_loaded", function()
         local group_id = Auctionpad.Data.GroupStore.create(Auctionpad.db, "Flasks")
         Auctionpad.Data.GroupStore.add_item(Auctionpad.db, group_id, Fixtures.FLASK_ID, { target = 20 })

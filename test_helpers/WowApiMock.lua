@@ -93,6 +93,12 @@ function WowApiMock.install()
 
     _G.print = function() end
     _G.time = function() return 1758067200 end
+    _G.YES = "Yes"
+    _G.NO = "No"
+    -- Popups aren't simulated visually; specs call the OnAccept/OnCancel
+    -- handlers in StaticPopupDialogs directly instead.
+    _G.StaticPopupDialogs = {}
+    _G.StaticPopup_Show = function() return {} end
     -- WoW defines string.match as a global alias for speed; LibStub uses it.
     _G.strmatch = string.match
     _G.GetTime = function() return 1000.0 end

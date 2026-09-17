@@ -18,6 +18,8 @@ read_globals = {
     "C_Timer", "C_AddOns", "Enum", "unpack",
     "UnitAffectingCombat", "UnitName", "GetRealmName",
     "GetLocale", "GetBuildInfo", "GetMoney", "time",
+    -- Confirmation popups
+    "StaticPopup_Show", "YES", "NO",
     -- Optional dependency, guarded at every call site
     "Auctionator",
     -- Auction house window (used by UI/AHTab.lua; Libs/ itself is style-excluded below)
@@ -30,6 +32,7 @@ globals = {
     "AuctionpadDB", -- SavedVariables
     "SLASH_AUCTIONPAD1", "SLASH_AUCTIONPAD2",
     "SlashCmdList",
+    "StaticPopupDialogs",
 }
 
 files["**/*_spec.lua"] = {

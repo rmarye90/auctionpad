@@ -104,6 +104,29 @@ local function select_group(group_id)
     UI.Refresh()
 end
 
+-- Deleting a group takes its items with it, so it goes through a confirmation
+-- popup rather than acting straight from the click. UI.Refresh() already
+-- reassigns the selection if it pointed at what just got deleted.
+local function delete_group(group_id)
+    if not group_id then
+        return
+    end
+    store().delete(db(), group_id)
+    UI.Refresh()
+end
+
+StaticPopupDialogs["AUCTIONPAD_CONFIRM_DELETE_GROUP"] = {
+    text = "Delete the group %s and everything in it?",
+    button1 = YES,
+    button2 = NO,
+    OnAccept = function(self)
+        delete_group(self.data)
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+}
+
 local function create_group_row(index, parent)
     local row = CreateFrame("Button", nil, parent)
     row:SetHeight(GROUP_ROW_HEIGHT)
@@ -118,8 +141,12 @@ local function create_group_row(index, parent)
 
     row.label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     row.label:SetPoint("LEFT", 6, 0)
-    row.label:SetPoint("RIGHT", -6, 0)
+    row.label:SetPoint("RIGHT", -20, 0)
     row.label:SetJustifyH("LEFT")
+
+    row.delete = CreateFrame("Button", nil, row, "UIPanelCloseButton")
+    row.delete:SetSize(16, 16)
+    row.delete:SetPoint("RIGHT", -2, 0)
 
     return row
 end
@@ -136,6 +163,9 @@ local function refresh_groups(container)
 
         row.label:SetText(group.name)
         row:SetScript("OnClick", function() select_group(group.id) end)
+        row.delete:SetScript("OnClick", function()
+            StaticPopup_Show("AUCTIONPAD_CONFIRM_DELETE_GROUP", group.name, nil, group.id)
+        end)
 
         if group.id == selected_group_id then
             row.highlight:Show()
