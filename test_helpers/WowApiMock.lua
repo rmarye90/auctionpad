@@ -20,7 +20,7 @@ local FRAME_METHODS = {
     "EnableMouse", "SetMovable", "SetResizable", "SetClampedToScreen",
     "RegisterForDrag", "RegisterForClicks", "RegisterEvent", "UnregisterEvent",
     "StartMoving", "StopMovingOrSizing", "Show", "Hide", "Raise",
-    "SetFrameStrata", "SetFrameLevel", "SetScrollChild", "SetVerticalScroll",
+    "SetScrollChild", "SetVerticalScroll",
     "SetAutoFocus", "SetNumeric", "SetJustifyH", "SetText", "SetMaxLetters",
     "ClearFocus", "SetFocus", "LockHighlight", "UnlockHighlight", "SetHighlightTexture",
     "SetNormalTexture", "SetPushedTexture", "Enable", "Disable", "SetEnabled",
@@ -66,6 +66,22 @@ local function stub_frame()
     frame.SetParent = function(_, parent) frame.parent = parent end
     frame.SetScript = function(_, name, handler) frame.scripts[name] = handler end
     frame.GetScript = function(_, name) return frame.scripts[name] end
+    -- Real chaining, unlike SetScript: needed so AHTab.lua's OnShow/OnHide
+    -- (registered via HookScript) doesn't clobber MainFrame.lua's own.
+    frame.HookScript = function(_, name, handler)
+        local previous = frame.scripts[name]
+        frame.scripts[name] = function(...)
+            if previous then previous(...) end
+            handler(...)
+        end
+    end
+
+    frame.strata = "MEDIUM"
+    frame.level = 1
+    frame.SetFrameStrata = function(_, strata) frame.strata = strata end
+    frame.GetFrameStrata = function() return frame.strata end
+    frame.SetFrameLevel = function(_, level) frame.level = level end
+    frame.GetFrameLevel = function() return frame.level end
     frame.CreateFontString = stub_region
     frame.CreateTexture = stub_region
 

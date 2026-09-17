@@ -222,5 +222,30 @@ describe("addon load", function()
 
             assert.is_false(Auctionpad.UI.IsStandaloneShown())
         end)
+
+        it("should_refresh_when_the_native_tab_button_is_clicked_directly", function()
+            -- The player normally switches to our tab by clicking the actual
+            -- button the AH window shows, not by typing /apad again. That
+            -- click goes straight through LibAHTab and never touches
+            -- Auctionpad.UI.Toggle()/Show() — refreshing must not depend on
+            -- our own code being the one that triggered the Show().
+            open_auction_house()
+            local refresh_spy = spy.on(Auctionpad.UI, "Refresh")
+
+            LibStub("LibAHTab-1-0"):SetSelected("Auctionpad")
+
+            assert.spy(refresh_spy).was_called()
+        end)
+
+        it("should_align_the_docked_content_strata_with_the_auction_house_frame", function()
+            -- SetParent() alone never re-derives strata/level from the new
+            -- parent; a mismatch here is what silently broke drag-and-drop
+            -- once content moved from UIParent into AuctionHouseFrame.
+            local ah = open_auction_house()
+
+            local content = Auctionpad.UI.GetContent()
+            assert.are.equal(ah:GetFrameStrata(), content:GetFrameStrata())
+            assert.is_true(content:GetFrameLevel() > ah:GetFrameLevel())
+        end)
     end)
 end)

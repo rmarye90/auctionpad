@@ -44,13 +44,27 @@ function AHTab.EnsureTab(content_frame)
     content_frame:SetPoint("TOPLEFT", AuctionHouseFrame, "TOPLEFT", 12, -70)
     content_frame:SetPoint("BOTTOMRIGHT", AuctionHouseFrame, "BOTTOMRIGHT", -12, 12)
 
+    -- SetParent() only changes anchoring/visibility lineage — it does NOT
+    -- re-derive strata or level from the new parent (those are only copied
+    -- once, from whatever parent a frame is given at CreateFrame time; ours
+    -- was created under UIParent). Left alone, content stays at UIParent's
+    -- (lower) strata while sitting inside a "HIGH"-strata Blizzard panel,
+    -- which is exactly the kind of mismatch that makes mouse-focus-sensitive
+    -- interactions (like a drag-and-drop release) resolve to some other
+    -- frame overlapping the same screen area instead of ours, even though
+    -- plain clicks still land correctly. Match it explicitly, with margin.
+    content_frame:SetFrameStrata(AuctionHouseFrame:GetFrameStrata())
+    content_frame:SetFrameLevel(AuctionHouseFrame:GetFrameLevel() + 10)
+
     ahtab:CreateTab(TAB_ID, content_frame, Auctionpad.Utils.Locale.get("Auctionpad"))
 
     -- LibAHTab has no IsSelected(): track it ourselves from the show/hide it
     -- already drives (its own SetSelected and its SetDisplayMode hook both
-    -- work by calling Show()/Hide() on the frame we handed it).
-    content_frame:SetScript("OnShow", function() selected = true end)
-    content_frame:SetScript("OnHide", function() selected = false end)
+    -- work by calling Show()/Hide() on the frame we handed it). HookScript,
+    -- not SetScript: MainFrame.lua's own OnShow (refreshing the UI) must
+    -- keep firing too, whichever of us registered first.
+    content_frame:HookScript("OnShow", function() selected = true end)
+    content_frame:HookScript("OnHide", function() selected = false end)
 
     created = true
     return content_frame

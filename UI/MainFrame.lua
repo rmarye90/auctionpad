@@ -535,6 +535,11 @@ local function ensure_content()
     content.item_panel, content.item_content, content.item_hint = create_item_panel(content)
     content.status = create_footer(content)
 
+    -- Fires no matter what actually called Show() — our own UI.Show(), or the
+    -- player clicking the native Auctionpad tab button, which goes straight
+    -- through LibAHTab and never touches our code (see UI/AHTab.lua).
+    content:SetScript("OnShow", function() UI.Refresh() end)
+
     return content
 end
 
@@ -586,6 +591,11 @@ local function dock_into_standalone()
     content:SetParent(window)
     content:ClearAllPoints()
     content:SetPoint("TOPLEFT", window, "TOPLEFT", 0, 0)
+    -- SetParent() never re-derives strata/level on its own (they're only
+    -- copied from the parent at creation time) — realign explicitly, or
+    -- content stays stuck at whatever the AH tab bumped it to.
+    content:SetFrameStrata(window:GetFrameStrata())
+    content:SetFrameLevel(window:GetFrameLevel() + 1)
     content:Show()
     return window
 end
