@@ -19,6 +19,9 @@ local ROW_HEIGHT = 22
 local GROUP_ROW_HEIGHT = 20
 
 -- Column x offsets inside the item list, measured from its left edge.
+local ICON_SIZE = 16
+local ICON_GAP = 4
+local FALLBACK_ICON = 134400 -- Interface\Icons\INV_Misc_QuestionMark, shown while an item's data is still loading
 local COL_NAME = 4
 local COL_STOCK = 300
 local COL_LISTED = 360
@@ -164,7 +167,13 @@ local function create_item_row(index, parent)
         return text
     end
 
-    row.name = column(COL_NAME, COL_STOCK - COL_NAME - 8, "GameFontHighlight", "LEFT")
+    row.icon = row:CreateTexture(nil, "ARTWORK")
+    row.icon:SetSize(ICON_SIZE, ICON_SIZE)
+    row.icon:SetPoint("LEFT", COL_NAME, 0)
+    row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- trim the default icon border
+
+    local name_x = COL_NAME + ICON_SIZE + ICON_GAP
+    row.name = column(name_x, COL_STOCK - name_x - 8, "GameFontHighlight", "LEFT")
     row.stock = column(COL_STOCK, 54)
     row.listed = column(COL_LISTED, 54)
     row.to_post = column(COL_POST, 62)
@@ -210,6 +219,7 @@ local function bind_item_row(row, entry)
 
     row.item_id = entry.item_id
     row.name:SetText(Auctionpad.Utils.ItemInfo.get_name(entry.item_id, "item:" .. entry.item_id))
+    row.icon:SetTexture(Auctionpad.Utils.ItemInfo.get_icon(entry.item_id) or FALLBACK_ICON)
 
     local red, green, blue = status_color(result.status)
     row.name:SetTextColor(red, green, blue)

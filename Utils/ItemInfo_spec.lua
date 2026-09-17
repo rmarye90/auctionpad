@@ -81,4 +81,53 @@ describe("ItemInfo", function()
             assert.are.equal(1, calls)
         end)
     end)
+
+    describe("get_icon", function()
+        it("should_return_the_icon_when_item_data_is_loaded", function()
+            _G.C_Item.GetItemIcon = function() return 134400 end
+
+            assert.are.equal(134400, ItemInfo.get_icon(212283))
+        end)
+
+        it("should_fall_back_to_the_classic_api_when_the_modern_one_has_nothing", function()
+            _G.C_Item.GetItemIcon = function() return nil end
+            _G.GetItemIcon = function() return 999 end
+
+            assert.are.equal(999, ItemInfo.get_icon(212283))
+        end)
+
+        it("should_return_nil_while_item_data_is_still_loading", function()
+            _G.C_Item.GetItemIcon = function() return nil end
+            _G.GetItemIcon = function() return nil end
+
+            assert.is_nil(ItemInfo.get_icon(212283))
+        end)
+
+        it("should_return_nil_when_the_item_id_is_nil", function()
+            assert.is_nil(ItemInfo.get_icon(nil))
+        end)
+
+        it("should_cache_the_icon_and_stop_hitting_the_api", function()
+            local calls = 0
+            _G.C_Item.GetItemIcon = function()
+                calls = calls + 1
+                return 134400
+            end
+
+            ItemInfo.get_icon(212283)
+            ItemInfo.get_icon(212283)
+
+            assert.are.equal(1, calls)
+        end)
+
+        it("should_not_cache_a_nil_result_so_a_later_load_can_still_resolve", function()
+            _G.C_Item.GetItemIcon = function() return nil end
+            _G.GetItemIcon = function() return nil end
+            ItemInfo.get_icon(212283)
+
+            _G.C_Item.GetItemIcon = function() return 134400 end
+
+            assert.are.equal(134400, ItemInfo.get_icon(212283))
+        end)
+    end)
 end)

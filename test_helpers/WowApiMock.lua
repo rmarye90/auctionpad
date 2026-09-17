@@ -113,12 +113,14 @@ function WowApiMock.install()
     }
 
     _G.GetItemInfo = function() return nil end
+    _G.GetItemIcon = function() return nil end
     _G.GetItemCount = function() return 0 end
 
     _G.C_Item = {
         GetItemCount = function() return 0 end,
         GetItemInfo = function() return nil end,
         GetItemInfoInstant = function() return nil end,
+        GetItemIcon = function() return nil end,
     }
 
     _G.C_Container = {

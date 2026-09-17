@@ -8,6 +8,7 @@ local ItemInfo = {}
 Auctionpad.Utils.ItemInfo = ItemInfo
 
 local name_cache = {}
+local icon_cache = {}
 
 -- Bags + personal bank + reagent bank + warband bank: what we own, anywhere.
 function ItemInfo.get_owned_total(item_id)
@@ -58,4 +59,33 @@ end
 
 function ItemInfo.clear_name_cache()
     name_cache = {}
+end
+
+-- Icon texture (fileID) for an item, or nil while its data is still loading
+-- asynchronously — callers fall back to a generic icon in that case.
+function ItemInfo.get_icon(item_id)
+    if not item_id then
+        return nil
+    end
+    if icon_cache[item_id] then
+        return icon_cache[item_id]
+    end
+
+    local icon
+    if C_Item and C_Item.GetItemIcon then
+        icon = C_Item.GetItemIcon(item_id)
+    end
+    if not icon then
+        icon = GetItemIcon(item_id)
+    end
+
+    if icon then
+        icon_cache[item_id] = icon
+    end
+
+    return icon
+end
+
+function ItemInfo.clear_icon_cache()
+    icon_cache = {}
 end

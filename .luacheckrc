@@ -9,7 +9,7 @@ read_globals = {
     "CreateFrame", "UIParent", "GameTooltip", "GameTooltip_SetDefaultAnchor",
     "Minimap", "GetCursorPosition", "GetCursorInfo", "ClearCursor",
     -- Items
-    "GetItemCount", "GetItemInfo", "C_Item", "C_Container", "ItemLocation",
+    "GetItemCount", "GetItemInfo", "GetItemIcon", "C_Item", "C_Container", "ItemLocation",
     -- Auction house
     "C_AuctionHouse", "AuctionHouseFrame",
     -- Professions
