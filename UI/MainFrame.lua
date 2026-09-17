@@ -354,7 +354,8 @@ local function add_item(item_id, item_link)
         return false
     end
 
-    UI.Refresh()
+    local ok, err = pcall(UI.Refresh)
+    print("|cffff0000[Auctionpad DEBUG]|r UI.Refresh() ok=", ok, "err=", err)
     return true
 end
 
