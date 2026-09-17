@@ -59,6 +59,12 @@ local item_rows = {}
 local selected_group_id
 local recraft_only = false
 
+-- Forward declaration: create_item_row wires this onto each row (so dropping
+-- an item directly on a row works, not just on the empty panel behind it —
+-- see the comment at that call site), but it's only defined much further
+-- down, after add_item/add_from_text exist.
+local add_from_cursor
+
 local function L(key)
     return Auctionpad.Utils.Locale.get(key)
 end
@@ -193,6 +199,12 @@ local function create_item_row(index, parent)
     row:SetPoint("TOPLEFT", 0, -(index - 1) * ROW_HEIGHT)
     row:SetPoint("TOPRIGHT", 0, -(index - 1) * ROW_HEIGHT)
     row:EnableMouse(true)
+    -- A mouse-enabled frame swallows a drop instead of falling through to
+    -- whatever is behind it — the empty panel's own OnReceiveDrag never
+    -- fires for a drop landing on an existing row rather than blank space.
+    -- Give every row the same handler so dropping directly on one still works.
+    row:SetScript("OnReceiveDrag", function() add_from_cursor() end)
+    row:SetScript("OnMouseUp", function() add_from_cursor() end)
 
     local function column(x, width, template, justify)
         local text = row:CreateFontString(nil, "OVERLAY", template or "GameFontHighlightSmall")
@@ -344,7 +356,7 @@ local function add_item(item_id, item_link)
     return true
 end
 
-local function add_from_cursor()
+function add_from_cursor()
     local kind, item_id, item_link = GetCursorInfo()
     if kind ~= "item" then
         return false
