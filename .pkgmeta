@@ -1,0 +1,9 @@
+package-as: Auctionpad
+
+ignore:
+  - .busted
+  - .luacheckrc
+  - .github
+  - Makefile
+  - test_helpers
+  - "**/*_spec.lua"

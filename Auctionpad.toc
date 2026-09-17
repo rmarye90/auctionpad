@@ -1,0 +1,17 @@
+## Interface: 120100
+## Version: 0.1.0
+## Title: Auctionpad
+## Notes: Sell groups and recraft tracking for the Auction House
+## Notes-frFR: Groupes de vente et suivi des recrafts pour l'hôtel des ventes
+## Author: marye
+## SavedVariables: AuctionpadDB
+## OptionalDeps: Auctionator
+## X-License: MIT
+
+Core.lua
+Utils\Money.lua
+Utils\ItemInfo.lua
+Data\Schema.lua
+Data\GroupStore.lua
+Stock\StockLedger.lua
+Commands.lua

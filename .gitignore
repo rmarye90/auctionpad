@@ -1,0 +1,12 @@
+# Luarocks
+luarocks/
+.luarocks/
+
+# Busted
+.busted_*
+
+# Coverage
+luacov.*.out
+
+# macOS
+.DS_Store
