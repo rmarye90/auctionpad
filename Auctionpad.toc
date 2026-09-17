@@ -9,9 +9,13 @@
 ## X-License: MIT
 
 Core.lua
+Utils\Locale.lua
 Utils\Money.lua
 Utils\ItemInfo.lua
 Data\Schema.lua
 Data\GroupStore.lua
 Stock\StockLedger.lua
+Auction\OwnedAuctions.lua
+UI\MainFrame.lua
+UI\MinimapButton.lua
 Commands.lua

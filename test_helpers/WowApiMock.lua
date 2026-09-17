@@ -6,51 +6,68 @@
 
 local WowApiMock = {}
 
+-- Methods are listed explicitly rather than auto-stubbed: a typo like
+-- `frame:Setmovable(true)` must blow up in the smoke test, not silently no-op.
+local REGION_METHODS = {
+    "SetPoint", "SetAllPoints", "ClearAllPoints", "SetText", "SetTextColor", "SetWidth",
+    "SetHeight", "SetSize", "SetTexture", "SetColorTexture", "SetTexCoord", "SetJustifyH",
+    "SetWordWrap", "SetVertexColor", "Show", "Hide", "IsShown",
+}
+
+local FRAME_METHODS = {
+    "SetSize", "SetPoint", "SetAllPoints", "ClearAllPoints", "SetWidth", "SetHeight",
+    "SetBackdrop", "SetBackdropColor", "SetBackdropBorderColor",
+    "EnableMouse", "SetMovable", "SetResizable", "SetClampedToScreen",
+    "RegisterForDrag", "RegisterForClicks", "RegisterEvent", "UnregisterEvent",
+    "StartMoving", "StopMovingOrSizing", "Show", "Hide", "Raise",
+    "SetFrameStrata", "SetFrameLevel", "SetScrollChild", "SetVerticalScroll",
+    "SetAutoFocus", "SetNumeric", "SetJustifyH", "SetText", "SetMaxLetters",
+    "ClearFocus", "SetFocus", "LockHighlight", "UnlockHighlight", "SetHighlightTexture",
+    "SetNormalTexture", "SetPushedTexture", "Enable", "Disable", "SetEnabled",
+}
+
 local function stub_region()
-    return {
-        SetPoint = function() end,
-        SetText = function() end,
-        SetTextColor = function() end,
-        SetWidth = function() end,
-        SetHeight = function() end,
-        SetSize = function() end,
-        SetTexture = function() end,
-        SetColorTexture = function() end,
-        SetJustifyH = function() end,
-        SetWordWrap = function() end,
-        Show = function() end,
-        Hide = function() end,
-    }
+    local region = {}
+    for _, method in ipairs(REGION_METHODS) do
+        region[method] = function() end
+    end
+    return region
 end
 
-function WowApiMock.install()
-    _G.CreateFrame = function()
-        return {
-            SetSize = function() end,
-            SetPoint = function() end,
-            SetBackdrop = function() end,
-            SetBackdropColor = function() end,
-            SetBackdropBorderColor = function() end,
-            EnableMouse = function() end,
-            SetMovable = function() end,
-            SetResizable = function() end,
-            SetClampedToScreen = function() end,
-            RegisterForDrag = function() end,
-            RegisterEvent = function() end,
-            UnregisterEvent = function() end,
-            SetScript = function() end,
-            GetScript = function() return nil end,
-            StartMoving = function() end,
-            StopMovingOrSizing = function() end,
-            Show = function() end,
-            Hide = function() end,
-            IsShown = function() return false end,
-            CreateFontString = stub_region,
-            CreateTexture = stub_region,
-        }
+local function stub_frame()
+    local frame = { scripts = {} }
+
+    for _, method in ipairs(FRAME_METHODS) do
+        frame[method] = function() end
     end
 
-    _G.UIParent = {}
+    frame.IsShown = function() return frame.shown == true end
+    frame.Show = function() frame.shown = true end
+    frame.Hide = function() frame.shown = false end
+    frame.GetText = function() return frame.text or "" end
+    frame.HasFocus = function() return false end
+    frame.GetPoint = function() return "CENTER", nil, "CENTER", 0, 0 end
+    frame.GetCenter = function() return 0, 0 end
+    frame.GetEffectiveScale = function() return 1 end
+    frame.IsEnabled = function() return true end
+    frame.SetScript = function(_, name, handler) frame.scripts[name] = handler end
+    frame.GetScript = function(_, name) return frame.scripts[name] end
+    frame.CreateFontString = stub_region
+    frame.CreateTexture = stub_region
+
+    return frame
+end
+
+WowApiMock.stub_frame = stub_frame
+
+function WowApiMock.install()
+    _G.CreateFrame = function() return stub_frame() end
+
+    _G.UIParent = stub_frame()
+    _G.Minimap = stub_frame()
+    _G.GetCursorPosition = function() return 0, 0 end
+    _G.GetCursorInfo = function() return nil end
+    _G.ClearCursor = function() end
     _G.GameTooltip = {
         SetOwner = function() end,
         SetText = function() end,
