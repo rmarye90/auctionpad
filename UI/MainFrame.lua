@@ -18,17 +18,22 @@ local SIDEBAR_WIDTH = 190
 local ROW_HEIGHT = 22
 local GROUP_ROW_HEIGHT = 20
 
--- Column x offsets inside the item list, measured from its left edge.
+-- Column x offsets inside the item list, measured from its left edge. The
+-- item panel is only WINDOW_WIDTH - SIDEBAR_WIDTH wide (~540-580px, see
+-- create_item_panel), not the full WINDOW_WIDTH — these must add up to less
+-- than that, or the rightmost columns render outside the scroll frame's
+-- clipped viewport and are invisible (this bit us: To recraft used to start
+-- at x=566, past the ~540px the scroll content actually has).
 local ICON_SIZE = 16
 local ICON_GAP = 4
 local FALLBACK_ICON = 134400 -- Interface\Icons\INV_Misc_QuestionMark, shown while an item's data is still loading
 local COL_NAME = 4
-local COL_STOCK = 300
-local COL_LISTED = 360
-local COL_TARGET = 424
-local COL_POST = 496
-local COL_CRAFT = 566
-local COL_REMOVE = 636
+local COL_STOCK = 232
+local COL_LISTED = 286
+local COL_TARGET = 340
+local COL_POST = 396
+local COL_CRAFT = 452
+local COL_REMOVE = 506
 
 local STATUS_COLORS = {
     unknown = { 0.55, 0.55, 0.55 },
@@ -174,13 +179,13 @@ local function create_item_row(index, parent)
 
     local name_x = COL_NAME + ICON_SIZE + ICON_GAP
     row.name = column(name_x, COL_STOCK - name_x - 8, "GameFontHighlight", "LEFT")
-    row.stock = column(COL_STOCK, 54)
-    row.listed = column(COL_LISTED, 54)
-    row.to_post = column(COL_POST, 62)
-    row.to_craft = column(COL_CRAFT, 62)
+    row.stock = column(COL_STOCK, 46)
+    row.listed = column(COL_LISTED, 46)
+    row.to_post = column(COL_POST, 50)
+    row.to_craft = column(COL_CRAFT, 50)
 
     row.target = CreateFrame("EditBox", nil, row, "InputBoxTemplate")
-    row.target:SetSize(52, 18)
+    row.target:SetSize(48, 18)
     row.target:SetPoint("LEFT", COL_TARGET, 0)
     row.target:SetAutoFocus(false)
     row.target:SetNumeric(true)
@@ -432,11 +437,11 @@ local function create_item_panel(window)
     end
 
     header(COL_NAME, COL_STOCK - COL_NAME - 8, L("Item"), "LEFT")
-    header(COL_STOCK, 54, L("Stock"))
-    header(COL_LISTED, 54, L("On sale"))
-    header(COL_TARGET, 54, L("Target"))
-    header(COL_POST, 62, L("To post"))
-    header(COL_CRAFT, 62, L("To recraft"))
+    header(COL_STOCK, 46, L("Stock"))
+    header(COL_LISTED, 46, L("On sale"))
+    header(COL_TARGET, 48, L("Target"))
+    header(COL_POST, 50, L("To post"))
+    header(COL_CRAFT, 50, L("To recraft"))
 
     local scroll = CreateFrame("ScrollFrame", "AuctionpadItemScroll", panel, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 8, -30)
