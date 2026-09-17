@@ -71,9 +71,12 @@ function ItemInfo.get_icon(item_id)
         return icon_cache[item_id]
     end
 
+    -- C_Item.GetItemIcon takes an itemLocation, not a raw id — the id-specific
+    -- entry point is GetItemIconByID (confirmed live: passing a plain id to
+    -- GetItemIcon throws "bad argument #1 ... Usage: GetItemIcon(itemLocation)").
     local icon
-    if C_Item and C_Item.GetItemIcon then
-        icon = C_Item.GetItemIcon(item_id)
+    if C_Item and C_Item.GetItemIconByID then
+        icon = C_Item.GetItemIconByID(item_id)
     end
     if not icon then
         icon = GetItemIcon(item_id)

@@ -84,20 +84,20 @@ describe("ItemInfo", function()
 
     describe("get_icon", function()
         it("should_return_the_icon_when_item_data_is_loaded", function()
-            _G.C_Item.GetItemIcon = function() return 134400 end
+            _G.C_Item.GetItemIconByID = function() return 134400 end
 
             assert.are.equal(134400, ItemInfo.get_icon(212283))
         end)
 
         it("should_fall_back_to_the_classic_api_when_the_modern_one_has_nothing", function()
-            _G.C_Item.GetItemIcon = function() return nil end
+            _G.C_Item.GetItemIconByID = function() return nil end
             _G.GetItemIcon = function() return 999 end
 
             assert.are.equal(999, ItemInfo.get_icon(212283))
         end)
 
         it("should_return_nil_while_item_data_is_still_loading", function()
-            _G.C_Item.GetItemIcon = function() return nil end
+            _G.C_Item.GetItemIconByID = function() return nil end
             _G.GetItemIcon = function() return nil end
 
             assert.is_nil(ItemInfo.get_icon(212283))
@@ -109,7 +109,7 @@ describe("ItemInfo", function()
 
         it("should_cache_the_icon_and_stop_hitting_the_api", function()
             local calls = 0
-            _G.C_Item.GetItemIcon = function()
+            _G.C_Item.GetItemIconByID = function()
                 calls = calls + 1
                 return 134400
             end
@@ -121,11 +121,26 @@ describe("ItemInfo", function()
         end)
 
         it("should_not_cache_a_nil_result_so_a_later_load_can_still_resolve", function()
-            _G.C_Item.GetItemIcon = function() return nil end
+            _G.C_Item.GetItemIconByID = function() return nil end
             _G.GetItemIcon = function() return nil end
             ItemInfo.get_icon(212283)
 
-            _G.C_Item.GetItemIcon = function() return 134400 end
+            _G.C_Item.GetItemIconByID = function() return 134400 end
+
+            assert.are.equal(134400, ItemInfo.get_icon(212283))
+        end)
+
+        it("should_never_call_GetItemIcon_with_a_raw_id_it_only_accepts_an_itemLocation", function()
+            -- Regression test: C_Item.GetItemIcon(itemLocation) errors on a plain
+            -- id in the real client ("bad argument #1 ... Usage:
+            -- GetItemIcon(itemLocation)") — GetItemIconByID(id) is the one that
+            -- actually takes a raw id. This shipped once; the mock intentionally
+            -- doesn't define GetItemIcon on C_Item at all, so calling it here
+            -- blows up loudly instead of silently.
+            _G.C_Item.GetItemIcon = function()
+                error("GetItemIcon does not accept a raw item id")
+            end
+            _G.C_Item.GetItemIconByID = function() return 134400 end
 
             assert.are.equal(134400, ItemInfo.get_icon(212283))
         end)

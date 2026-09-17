@@ -142,7 +142,11 @@ function WowApiMock.install()
         GetItemCount = function() return 0 end,
         GetItemInfo = function() return nil end,
         GetItemInfoInstant = function() return nil end,
-        GetItemIcon = function() return nil end,
+        -- GetItemIcon takes an itemLocation, not a raw id — GetItemIconByID is
+        -- the id-specific entry point, and the only one Utils/ItemInfo.lua
+        -- calls. Kept out of this mock on purpose so a regression back to
+        -- calling GetItemIcon(id) breaks loudly here instead of silently.
+        GetItemIconByID = function() return nil end,
     }
 
     _G.C_Container = {
